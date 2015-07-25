@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>Sparks Test</title>
+    <link rel="stylesheet" type="text/css" href="src/css/reset.css">
+    <link rel="stylesheet" type="text/css" href="src/css/style.css">
+  </head>
+  <body>
+    <div id="sparks-container">
+      <img id="sparks-bg" style="display: none" src="http://puu.sh/iuoR0/d3bd850ad2.png">
+      <button onclick="window.looping = true;">Start</button>
+      <button onclick="window.looping = false;">Stop</button>
+      <button onclick="window.blurActive = !window.blurActive;">Toggle Blur</button>
+      <canvas id="sparks" height="900" width="1600">
+        Nice animations go here.
+      </canvas>
+    </div>
+    <script src="jspm_packages/system.js"></script>
+    <script src="config.js"></script>
+    <script>
+      System.import('src/js/sparks_webgl');
+    </script>
+  </body>
+</html>
