@@ -10,7 +10,7 @@ System.config({
 
 System.config({
   "map": {
-    "pixi.js": "npm:pixi.js@3.0.7",
+    "pixi.js": "npm:pixi.js@3.0.7/bin/pixi.min",
     "traceur": "github:jmcriffey/bower-traceur@0.0.88",
     "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.88",
     "github:jspm/nodelibs-assert@0.1.0": {
