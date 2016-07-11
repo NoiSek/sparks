@@ -1,5 +1,5 @@
 import PIXI from "pixi.js";
-import { SparksEngine } from "./models/SparksEngine";
+import { SparksEngine } from "./models/SparksEngine.js";
 
 let engine = new SparksEngine({
   "backgroundColor": "#12487B",

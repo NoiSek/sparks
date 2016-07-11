@@ -1,4 +1,4 @@
-import { Tether } from "./Tether";
+import { Tether } from "./Tether.js";
 
 export class TetherManager {
   constructor(config) {

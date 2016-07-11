@@ -1,7 +1,7 @@
 import PIXI from "pixi.js";
-import * as utils from "../utils";
-import { Node } from "./Node";
-import { Spark } from "./Spark";
+import * as utils from "../utils.js";
+import { Node } from "./Node.js";
+import { Spark } from "./Spark.js";
 //import { TetherManager } from "./TetherManager";
 
 let shaderVertex = [

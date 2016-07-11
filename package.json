@@ -1,8 +1,7 @@
 {
   "jspm": {
-    "directories": {},
     "dependencies": {
-      "pixi.js": "npm:pixi.js@^3.0.7"
+      "pixi.js": "npm:pixi.js@^3.0.11"
     },
     "devDependencies": {
       "traceur": "github:jmcriffey/bower-traceur@0.0.88",

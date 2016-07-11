@@ -1,5 +1,5 @@
 import PIXI from "pixi.js";
-import * as utils from "../utils";
+import * as utils from "../utils.js";
 
 export class Node extends PIXI.Sprite {
   constructor(x, y, config, texture) {
