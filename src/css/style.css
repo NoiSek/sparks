@@ -22,3 +22,17 @@ body {
   margin: 75px auto;
   width: 1600px;
 }
+
+#info-box {
+  color: #fff;
+  margin: 15px auto;
+  text-align: center;
+}
+
+#info-box p {
+  display: inline;
+  
+  color: #FD8787;
+  font-style: italic;
+  font-weight: bold;
+}

@@ -1,8 +1,30 @@
 import PIXI from "pixi.js";
-import * as utils from "./webgl.utils";
-import {Node, Spark} from "./webgl.models";
+import * as utils from "../utils";
+import { Node } from "./Node";
+import { Spark } from "./Spark";
+//import { TetherManager } from "./TetherManager";
 
-class SparksEngine {
+let shaderVertex = [
+"attribute vec2 a_position;",
+"void main() {",
+"gl_Position = vec4(a_position, 0, 1);",
+"}"
+];
+let shaderFragment = [
+  "void main(out vec4 fragColor, in vec2 fragCoord )",
+  "{",
+  "vec2 uv = fragCoord.xy / iResolution.xy;",
+  "precision mediump float t = iGlobalTime/2.0;",
+  "vec2 p = 2.0*fragCoord.xy/10.0;",
+  "vec3 lg = vec3 ( 5.0 , 5.0, 5.0);",
+  "lg *= 0.5 - length(fract(p-vec2(t,0.)) - vec2(0.5, 0.5));",
+  "fragColor = -vec4(lg.r*2.,lg.g*2.0,-lg.b*2., 1.0)*2.0;",
+  "vec3 tc = texture2D(iChannel0,uv).rgb;",
+  "fragColor *= vec4(tc,1.0);",
+  "}"
+];
+
+export class SparksEngine {
   constructor(config) {
     this.config = config;
     this.state = {
@@ -22,9 +44,20 @@ class SparksEngine {
     this.stage = new PIXI.Container();
     this.worldBackground = new PIXI.Container();
     this.nodeContainer = new PIXI.Container();
+    this.tetherContainer = new PIXI.Container();
 
     this.stage.addChild(this.worldBackground);
     this.stage.addChild(this.nodeContainer);
+    this.stage.addChild(this.tetherContainer);
+
+    if (this.config.fpsContainer !== undefined) {
+      this.fpsContainer = document.getElementById(this.config.fpsContainer);
+    }
+
+    // Test shader
+    //this.shaderManager = new PIXI.ShaderManager(this.world);
+    //let filter = new PIXI.filters.GrayFilter();
+    //this.nodeContainer.filters = [filter];
 
     this.initialize();
     this.loop();
@@ -41,7 +74,7 @@ class SparksEngine {
   initialize() {
     // Draw our node texture
     let graphics = new PIXI.Graphics();
-    graphics.beginFill(parseInt(this.config.nodeColor.replace("#", ""), 16));
+    graphics.beginFill(0xffffff);
     graphics.drawCircle(0, 0, 2);
     graphics.endFill();
 
@@ -64,7 +97,6 @@ class SparksEngine {
 
     for (let i = 0; i < this.config.nodeCount; i++) {
       let node = new Node(false, false, this.config, this.textures.nodeTexture);
-      console.log(node.velocity);
 
       // Attach a 'glow' to each node.
       let nodeBackground = new PIXI.Sprite(this.textures.nodeGlow);
@@ -74,6 +106,20 @@ class SparksEngine {
       nodeBackground.position.y = -9.5;
 
       this.nodeContainer.addChild(node);
+    }
+
+    // Create tether layer
+    this.tetherLayer = new PIXI.Graphics();
+    this.tetherContainer.addChild(this.tetherLayer);
+
+    // Generate tethers
+    //this.tetherManager = new TetherManager();
+
+    // Begin FPS clock.
+    if (this.config.fpsContainer !== undefined) {
+      this.fpsClockLast = new Date();
+      this.fpsClockInterval = new Date();
+      this.fpsAverage = 60;
     }
   }
 
@@ -86,46 +132,86 @@ class SparksEngine {
   }
 
   loop() {
+    // Track FPS, write to container
+    if (this.config.fpsContainer !== undefined) {
+      let fpsClockCurrent = new Date();
+      let fps = (1000 / (fpsClockCurrent - this.fpsClockLast));
+
+      // Calculate FPS average
+      this.fpsAverage = (this.fpsAverage + fps) / 2;
+      this.fpsClockLast = fpsClockCurrent;
+
+      // Update if 2000ms has passed.
+      if ((fpsClockCurrent - this.fpsClockInterval) > 2000) {
+        this.fpsContainer.innerHTML = Math.floor(this.fpsAverage);
+        this.fpsClockInterval = fpsClockCurrent;
+      }
+
+      // Make sure we don't get stuck on Infinity.
+      if (this.fpsAverage === Infinity) {
+        this.fpsAverage = 60;
+      }
+    }
+
     if (this.state.isPaused) {
       requestAnimationFrame(this.idle.bind(this));
     } else {
       requestAnimationFrame(this.loop.bind(this));
     }
 
-    this.world.render(this.stage);
+    this.tetherLayer.clear();
 
-    this.nodeContainer.children.forEach(function(e, i) {
-      if (0 < e.position.x + e.velocity.x && e.position.x + e.velocity.x < this.config.canvasWidth) {
+    // Update node position from velocity
+    this.nodeContainer.children.map((e, i, a) => {
+      // Reset line drawn status
+      e.hasDrawn = false;
+      return e;
+    }).map((e, i, a) => {
+      if (0 < (e.position.x + e.velocity.x) && (e.position.x + e.velocity.x + 2) < this.config.canvasWidth) {
         e.position.x += e.velocity.x;
       } else {
         e.velocity.x = -e.velocity.x;
         e.position.x += e.velocity.x;
       }
 
-      if (0 < e.position.y + e.velocity.y && e.position.y + e.velocity.y < this.config.canvasHeight) {
+      if (0 < (e.position.y + e.velocity.y) && (e.position.y + e.velocity.y + 2) < this.config.canvasHeight) {
         e.position.y += e.velocity.y;
       } else {
         e.velocity.y = -e.velocity.y;
         e.position.y += e.velocity.y;
       }
 
-      // Reset "Drawn" state for lines
-      e.hasDrawn = false;
+      return e;
+    }).map((e, i, a) => {
+      // Save ourselves the expensive calculation upfront, filter by proximity in square units of distance.
+      let neighbors = this.nodeContainer.children.filter((_e, _i, _a) => {
+        let withinHorizontalDistance = Math.abs(e.position.x - _e.position.x) < this.config.nodeReach;
+        let withinVerticalDistance = Math.abs(e.position.y - _e.position.y) < this.config.nodeReach;
 
+        return (withinHorizontalDistance && withinVerticalDistance);
+      });
+
+      // Move cursor position
+      this.tetherLayer.moveTo(e.position.x  + 1, e.position.y + 1)
+
+      // Draw lines, if neighbors have not already drawn.
+      neighbors.filter((_e, _i, _a) => {
+        return e.hasDrawn === false;
+      }).map((_e, _i, _a) => {  
+        let distance = Math.hypot(((e.position.x + 1) - (_e.position.x + 1)), ((e.position.y + 1) - (_e.position.y + 1)));
+        if (distance <= this.config.nodeReach) {
+          let opacity = Number((distance / this.config.nodeReach).toFixed(2));
+          opacity = utils.scale(0.1, 0.005, opacity, false);
+
+          this.tetherLayer.lineStyle(1, 0xffffff, opacity);
+          this.tetherLayer.lineTo(_e.position.x + 1, _e.position.y + 1);
+        }
+      });
+
+      e.hasDrawn = true;
       e.step();
     }, this);
+
+    this.world.render(this.stage);
   }
 }
-
-let engine = new SparksEngine({
-  "backgroundColor": "#12487B",
-  "canvasHeight": 900,
-  "canvasWidth": 1600,
-  "nodeColor": "#0F97F7",
-  "nodeCount": 300,
-  "nodeReach": 75,
-  "maxFPS": 60,
-  "maxOpacity": 0.4,
-  "sparkColor": "rgba(255, 255, 255, 0.4)",
-  "sparkLifetime": 500
-});

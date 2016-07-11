@@ -14,10 +14,14 @@
         Nice animations go here.
       </canvas>
     </div>
+    <div id="info-box">
+      <div>You are running <p id="render_type"></p>.</div>
+      <div>Current FPS: <p id="render_fps"></p></div>
+    </div>
     <script src="jspm_packages/system.js"></script>
     <script src="config.js"></script>
     <script>
-      System.import('src/js/sparks_webgl');
+      System.import('src/js/main');
     </script>
   </body>
 </html>
